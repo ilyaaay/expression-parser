@@ -1,10 +1,10 @@
-use std::io;
+use super::errors::LexerError;
 
 #[derive(Debug)]
-pub struct Tokenizer<'a>(pub &'a str);
+pub struct Lexer<'a>(pub &'a str);
 
 #[derive(Debug, PartialEq)]
-pub enum Token {
+pub enum Lexema {
     Number(u32),
     Letter(String),
     Operator(OperatorType),
@@ -25,21 +25,8 @@ enum OperatorType {
     Division,
 }
 
-#[derive(Debug)]
-pub enum Error {
-    UnexpectedCharacter { character: char, position: usize },
-    ParseError(String),
-    Io(io::Error),
-}
-
-impl From<io::Error> for Error {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
-    }
-}
-
-impl<'a> Tokenizer<'a> {
-    pub fn parse(&self) -> Result<Vec<Token>, Error> {
+impl<'a> Lexer<'a> {
+    pub fn get_lexems(&self) -> Result<Vec<Lexema>, LexerError> {
         let mut chars = self.0.char_indices().peekable();
         let mut tokens = Vec::new();
 
@@ -61,16 +48,16 @@ impl<'a> Tokenizer<'a> {
                         }
                     }
 
-                    tokens.push(Token::Letter(buf));
+                    tokens.push(Lexema::Letter(buf));
                 }
 
-                '+' => tokens.push(Token::Operator(OperatorType::Plus)),
-                '-' => tokens.push(Token::Operator(OperatorType::Minus)),
-                '*' => tokens.push(Token::Operator(OperatorType::Multiplier)),
-                '/' => tokens.push(Token::Operator(OperatorType::Division)),
+                '+' => tokens.push(Lexema::Operator(OperatorType::Plus)),
+                '-' => tokens.push(Lexema::Operator(OperatorType::Minus)),
+                '*' => tokens.push(Lexema::Operator(OperatorType::Multiplier)),
+                '/' => tokens.push(Lexema::Operator(OperatorType::Division)),
 
-                '(' => tokens.push(Token::Comma(CommaType::Open)),
-                ')' => tokens.push(Token::Comma(CommaType::Close)),
+                '(' => tokens.push(Lexema::Comma(CommaType::Open)),
+                ')' => tokens.push(Lexema::Comma(CommaType::Close)),
 
                 ch if ch.is_ascii_digit() => {
                     let mut buf = String::from(ch);
@@ -88,13 +75,13 @@ impl<'a> Tokenizer<'a> {
 
                     let number = buf
                         .parse::<u32>()
-                        .map(Token::Number)
-                        .map_err(|err| Error::ParseError(err.to_string()))?;
+                        .map(Lexema::Number)
+                        .map_err(|err| LexerError::ParseError(err.to_string()))?;
 
                     tokens.push(number);
                 }
                 _ => {
-                    return Err(Error::UnexpectedCharacter {
+                    return Err(LexerError::UnexpectedCharacter {
                         character: ch,
                         position: step,
                     });
@@ -108,60 +95,60 @@ impl<'a> Tokenizer<'a> {
 
 #[cfg(test)]
 mod tokenizer_tests {
-    use super::{CommaType, OperatorType, Token, Tokenizer};
+    use super::{CommaType, Lexema, Lexer, OperatorType};
 
     #[test]
     fn one_digit_numbers() {
-        let tokens = Tokenizer("1+2").parse().unwrap();
+        let lexems = Lexer("1+2").get_lexems().unwrap();
         let actual = [
-            Token::Number(1),
-            Token::Operator(OperatorType::Plus),
-            Token::Number(2),
+            Lexema::Number(1),
+            Lexema::Operator(OperatorType::Plus),
+            Lexema::Number(2),
         ];
-        assert_eq!(tokens, actual);
+        assert_eq!(lexems, actual);
 
-        let tokens = Tokenizer("\n1 + \r\t2").parse().unwrap();
+        let lexems = Lexer("\n1 + \r\t2").get_lexems().unwrap();
         let actual = [
-            Token::Number(1),
-            Token::Operator(OperatorType::Plus),
-            Token::Number(2),
+            Lexema::Number(1),
+            Lexema::Operator(OperatorType::Plus),
+            Lexema::Number(2),
         ];
-        assert_eq!(tokens, actual);
+        assert_eq!(lexems, actual);
     }
 
     #[test]
     fn two_digit_numbers() {
-        let tokens = Tokenizer("\n1\n2 - \t2\r3").parse().unwrap();
+        let lexems = Lexer("\n1\n2 - \t2\r3").get_lexems().unwrap();
         let actual = [
-            Token::Number(12),
-            Token::Operator(OperatorType::Minus),
-            Token::Number(23),
+            Lexema::Number(12),
+            Lexema::Operator(OperatorType::Minus),
+            Lexema::Number(23),
         ];
-        assert_eq!(tokens, actual);
+        assert_eq!(lexems, actual);
     }
 
     #[test]
     fn letter() {
-        let tokens = Tokenizer("var + ").parse().unwrap();
+        let lexems = Lexer("var + ").get_lexems().unwrap();
         let actual = [
-            Token::Letter("var".into()),
-            Token::Operator(OperatorType::Plus),
+            Lexema::Letter("var".into()),
+            Lexema::Operator(OperatorType::Plus),
         ];
-        assert_eq!(tokens, actual);
+        assert_eq!(lexems, actual);
     }
 
     #[test]
     fn two_numbes_with_commas() {
-        let tokens = Tokenizer("( 1 + 2\n ) * 3").parse().unwrap();
+        let lexems = Lexer("( 1 + 2\n ) * 3").get_lexems().unwrap();
         let actual = [
-            Token::Comma(CommaType::Open),
-            Token::Number(1),
-            Token::Operator(OperatorType::Plus),
-            Token::Number(2),
-            Token::Comma(CommaType::Close),
-            Token::Operator(OperatorType::Multiplier),
-            Token::Number(3),
+            Lexema::Comma(CommaType::Open),
+            Lexema::Number(1),
+            Lexema::Operator(OperatorType::Plus),
+            Lexema::Number(2),
+            Lexema::Comma(CommaType::Close),
+            Lexema::Operator(OperatorType::Multiplier),
+            Lexema::Number(3),
         ];
-        assert_eq!(tokens, actual);
+        assert_eq!(lexems, actual);
     }
 }

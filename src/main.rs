@@ -1,15 +1,15 @@
-mod tokenizer;
+mod errors;
+mod lexer;
 
+use errors::AppError;
+use lexer::Lexer;
 use std::io;
-use tokenizer::Error;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), AppError> {
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
 
-    let x = tokenizer::Tokenizer(&buf).parse()?;
-
-    println!("tokens: {:?}", x);
+    Lexer(&buf).get_lexems()?;
 
     Ok(())
 }

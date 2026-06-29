@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "expr_parser"
+name = "expression_parser"
 version = "0.1.0"
