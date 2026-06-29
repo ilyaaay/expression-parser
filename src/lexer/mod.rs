@@ -1,5 +1,5 @@
 mod errors;
 mod lexer;
 
-pub use errors::LexerError;
+pub use errors::LexerErrors;
 pub use lexer::Lexer;

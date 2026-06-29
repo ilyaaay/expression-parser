@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub enum LexerError {
+pub enum LexerErrors {
     UnexpectedCharacter { character: char, position: usize },
     ParseError(String),
 }

@@ -1,9 +1,15 @@
-use super::lexer::LexerError;
+use super::{lexer::LexerErrors, parser::ParserErrors};
 use std::io;
 
-impl From<LexerError> for AppError {
-    fn from(value: LexerError) -> Self {
+impl From<LexerErrors> for AppError {
+    fn from(value: LexerErrors) -> Self {
         Self::LexerError(value)
+    }
+}
+
+impl From<ParserErrors> for AppError {
+    fn from(value: ParserErrors) -> Self {
+        Self::ParserError(value)
     }
 }
 
@@ -15,7 +21,7 @@ impl From<io::Error> for AppError {
 
 #[derive(Debug)]
 pub enum AppError {
-    LexerError(LexerError),
-    ParserError,
+    LexerError(LexerErrors),
+    ParserError(ParserErrors),
     Io(io::Error),
 }
