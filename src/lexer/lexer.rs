@@ -1,43 +1,15 @@
-use super::errors::LexerErrors;
+use super::{
+    errors::LexerErrors,
+    models::{Brackets, Comments, Lexema, MathOperators, Punctuation},
+};
 
-#[derive(Debug)]
-pub struct Lexer<'a>(pub &'a str);
-
-#[derive(Debug, PartialEq)]
-pub enum Lexema {
-    Number(u32),
-    Letter(String),
-    Operator(MathOperators),
-    Punctuation(Punctuation),
-    Brackets(Brackets),
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Punctuation {
-    Dot,
-    Comma,
-    Semicolon,
-}
-
-#[derive(Debug, PartialEq)]
-enum Brackets {
-    Open,
-    Close,
-}
-
-#[derive(Debug, PartialEq)]
-enum MathOperators {
-    Plus,
-    Minus,
-    Multiplier,
-    Division,
-    Remainder,
-    Equals,
+pub struct Lexer<'a> {
+    pub input: &'a str,
 }
 
 impl<'a> Lexer<'a> {
     pub fn get_lexems(&self) -> Result<Vec<Lexema>, LexerErrors> {
-        let mut chars = self.0.char_indices().peekable();
+        let mut chars = self.input.char_indices().peekable();
         let mut tokens = Vec::new();
 
         while let Some((step, ch)) = chars.next() {
@@ -45,7 +17,7 @@ impl<'a> Lexer<'a> {
                 ch if ch.is_ascii_whitespace() => continue,
 
                 ch if ch.is_ascii_alphabetic() => {
-                    let mut buf = String::from(ch);
+                    let mut buf = String::new();
 
                     while let Some((_, peek)) = chars.peek() {
                         if peek.is_ascii_alphabetic() {
@@ -64,9 +36,25 @@ impl<'a> Lexer<'a> {
                 '+' => tokens.push(Lexema::Operator(MathOperators::Plus)),
                 '-' => tokens.push(Lexema::Operator(MathOperators::Minus)),
                 '*' => tokens.push(Lexema::Operator(MathOperators::Multiplier)),
-                '/' => tokens.push(Lexema::Operator(MathOperators::Division)),
                 '=' => tokens.push(Lexema::Operator(MathOperators::Equals)),
                 '%' => tokens.push(Lexema::Operator(MathOperators::Remainder)),
+
+                '/' => {
+                    if let Some((_, next)) = chars.next()
+                        && next == '/'
+                    {
+                        if let Some((_, peek)) = chars.peek()
+                            && *peek == '/'
+                        {
+                            tokens.push(Lexema::Comments(Comments::Multiline));
+                            chars.next();
+                        } else {
+                            tokens.push(Lexema::Comments(Comments::Line));
+                        }
+                    } else {
+                        tokens.push(Lexema::Operator(MathOperators::Division));
+                    }
+                }
 
                 '.' => tokens.push(Lexema::Punctuation(Punctuation::Dot)),
                 ',' => tokens.push(Lexema::Punctuation(Punctuation::Comma)),
