@@ -6,6 +6,7 @@ pub enum Lexema {
     Punctuation(Punctuation),
     Brackets(Brackets),
     Comments(Comments),
+    EndOfLine,
 }
 
 #[derive(Debug, PartialEq)]
