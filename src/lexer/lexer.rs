@@ -3,9 +3,9 @@ use super::{
     models::{Brackets, Comments, Lexema, MathOperators, Punctuation},
 };
 
-pub struct Lexer<'a>(pub std::str::Chars<'a>);
+pub struct Lexer<I: Iterator<Item = char>>(pub I);
 
-impl<'a> Lexer<'a> {
+impl<I: Iterator<Item = char>> Lexer<I> {
     pub fn get_lexems(self) -> Result<Vec<Lexema>, LexerErrors> {
         let mut chars = self.0.enumerate().peekable();
         let mut tokens = Vec::new();

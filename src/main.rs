@@ -18,9 +18,7 @@ fn main() -> Result<(), AppError> {
 
     descriptor.read_to_end(&mut buf)?;
 
-    let s = buf.into_iter().map(char::from).collect::<String>();
-
-    let lexems = Lexer(s.chars()).get_lexems()?;
+    let lexems = Lexer(buf.into_iter().map(char::from)).get_lexems()?;
     println!("{lexems:?}");
 
     Ok(())
