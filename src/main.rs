@@ -4,22 +4,22 @@ mod parser;
 
 use errors::AppError;
 use lexer::Lexer;
-use std::io::{self, ErrorKind, Read};
+use std::io::{self, BufRead};
 
 fn main() -> Result<(), AppError> {
-    let mut buf = Vec::new();
     let mut descriptor = io::stdin().lock();
-    // descriptor
-    //     .read_to_end(&mut buf)
-    //     .or_else(|err| match err.kind() {
-    //         ErrorKind::Interrupted => Ok(0),
-    //         error => return Err(error),
-    //     })?;
 
-    descriptor.read_to_end(&mut buf)?;
+    loop {
+        let mut buf = String::new();
+        let read_bytes = descriptor.read_line(&mut buf)?;
 
-    let lexems = Lexer(buf.into_iter().map(char::from)).get_lexems()?;
-    println!("{lexems:?}");
+        if read_bytes == 0 {
+            break;
+        }
+
+        let lexems = Lexer(buf.chars()).get_lexems()?;
+        println!("{lexems:?}");
+    }
 
     Ok(())
 }
