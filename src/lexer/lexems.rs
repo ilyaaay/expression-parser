@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub enum Lexema {
+pub enum Lexem {
     Number(u32),
     Letter(String),
     Operator(MathOperators),

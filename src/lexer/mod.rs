@@ -1,7 +1,7 @@
 mod errors;
+mod lexems;
 mod lexer;
-mod models;
 
 pub use errors::LexerErrors;
+pub use lexems::Lexem;
 pub use lexer::Lexer;
-pub use models::Lexema;

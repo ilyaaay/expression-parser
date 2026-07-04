@@ -1,14 +1,12 @@
-use super::Lexema;
+use super::Lexem;
 
-pub struct Parser<'a>(pub &'a [Lexema]);
+pub struct Parser<I: Iterator<Item = Lexem>>(pub I);
 
-impl<'a> Parser<'a> {
-    fn parse_math_expression(&self) {}
-}
+impl<I: Iterator<Item = Lexem>> Parser<I> {}
 
 #[cfg(test)]
 mod parser_tests {
-    use super::{Lexema, Parser};
+    use super::{Lexem, Parser};
 
     #[test]
     fn test() {}

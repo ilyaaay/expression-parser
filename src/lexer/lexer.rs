@@ -1,19 +1,19 @@
 use super::{
     errors::LexerErrors,
-    models::{Brackets, Comments, Lexema, MathOperators, Punctuation},
+    lexems::{Brackets, Comments, Lexem, MathOperators, Punctuation},
 };
 
 pub struct Lexer<I: Iterator<Item = char>>(pub I);
 
 impl<I: Iterator<Item = char>> Lexer<I> {
-    pub fn get_lexems(self) -> Result<Vec<Lexema>, LexerErrors> {
+    pub fn get_lexems(self) -> Result<Vec<Lexem>, LexerErrors> {
         let mut chars = self.0.enumerate().peekable();
         let mut tokens = Vec::new();
 
         while let Some((step, ch)) = chars.next() {
             match ch {
                 '\t' | '\x0C' | '\r' | ' ' => continue,
-                '\n' => tokens.push(Lexema::EndOfLine),
+                '\n' => tokens.push(Lexem::EndOfLine),
 
                 ch if ch.is_ascii_alphabetic() => {
                     let mut buf = String::from(ch);
@@ -29,14 +29,14 @@ impl<I: Iterator<Item = char>> Lexer<I> {
                         }
                     }
 
-                    tokens.push(Lexema::Letter(buf));
+                    tokens.push(Lexem::Letter(buf));
                 }
 
-                '+' => tokens.push(Lexema::Operator(MathOperators::Plus)),
-                '-' => tokens.push(Lexema::Operator(MathOperators::Minus)),
-                '*' => tokens.push(Lexema::Operator(MathOperators::Multiplier)),
-                '=' => tokens.push(Lexema::Operator(MathOperators::Equals)),
-                '%' => tokens.push(Lexema::Operator(MathOperators::Remainder)),
+                '+' => tokens.push(Lexem::Operator(MathOperators::Plus)),
+                '-' => tokens.push(Lexem::Operator(MathOperators::Minus)),
+                '*' => tokens.push(Lexem::Operator(MathOperators::Multiplier)),
+                '=' => tokens.push(Lexem::Operator(MathOperators::Equals)),
+                '%' => tokens.push(Lexem::Operator(MathOperators::Remainder)),
 
                 '/' => {
                     if let Some((_, next)) = chars.next()
@@ -45,22 +45,22 @@ impl<I: Iterator<Item = char>> Lexer<I> {
                         if let Some((_, peek)) = chars.peek()
                             && *peek == '/'
                         {
-                            tokens.push(Lexema::Comments(Comments::Multiline));
+                            tokens.push(Lexem::Comments(Comments::Multiline));
                             chars.next();
                         } else {
-                            tokens.push(Lexema::Comments(Comments::Line));
+                            tokens.push(Lexem::Comments(Comments::Line));
                         }
                     } else {
-                        tokens.push(Lexema::Operator(MathOperators::Division));
+                        tokens.push(Lexem::Operator(MathOperators::Division));
                     }
                 }
 
-                '.' => tokens.push(Lexema::Punctuation(Punctuation::Dot)),
-                ',' => tokens.push(Lexema::Punctuation(Punctuation::Comma)),
-                ';' => tokens.push(Lexema::Punctuation(Punctuation::Semicolon)),
+                '.' => tokens.push(Lexem::Punctuation(Punctuation::Dot)),
+                ',' => tokens.push(Lexem::Punctuation(Punctuation::Comma)),
+                ';' => tokens.push(Lexem::Punctuation(Punctuation::Semicolon)),
 
-                '(' => tokens.push(Lexema::Brackets(Brackets::Open)),
-                ')' => tokens.push(Lexema::Brackets(Brackets::Close)),
+                '(' => tokens.push(Lexem::Brackets(Brackets::Open)),
+                ')' => tokens.push(Lexem::Brackets(Brackets::Close)),
 
                 ch if ch.is_ascii_digit() => {
                     let mut buf = String::new();
@@ -78,7 +78,7 @@ impl<I: Iterator<Item = char>> Lexer<I> {
 
                     let number = buf
                         .parse::<u32>()
-                        .map(Lexema::Number)
+                        .map(Lexem::Number)
                         .map_err(|err| LexerErrors::ParseError(err.to_string()))?;
 
                     tokens.push(number);
@@ -98,23 +98,23 @@ impl<I: Iterator<Item = char>> Lexer<I> {
 
 #[cfg(test)]
 mod tokenizer_tests {
-    use super::{Brackets, Lexema, Lexer, MathOperators};
+    use super::{Brackets, Lexem, Lexer, MathOperators};
 
     #[test]
     fn one_digit_numbers() {
         let lexems = Lexer("1+2".chars()).get_lexems().unwrap();
         let actual = [
-            Lexema::Number(1),
-            Lexema::Operator(MathOperators::Plus),
-            Lexema::Number(2),
+            Lexem::Number(1),
+            Lexem::Operator(MathOperators::Plus),
+            Lexem::Number(2),
         ];
         assert_eq!(lexems, actual);
 
         let lexems = Lexer("\n1 + \r\t2".chars()).get_lexems().unwrap();
         let actual = [
-            Lexema::Number(1),
-            Lexema::Operator(MathOperators::Plus),
-            Lexema::Number(2),
+            Lexem::Number(1),
+            Lexem::Operator(MathOperators::Plus),
+            Lexem::Number(2),
         ];
         assert_eq!(lexems, actual);
     }
@@ -123,9 +123,9 @@ mod tokenizer_tests {
     fn two_digit_numbers() {
         let lexems = Lexer("\n1\n2 - \t2\r3".chars()).get_lexems().unwrap();
         let actual = [
-            Lexema::Number(12),
-            Lexema::Operator(MathOperators::Minus),
-            Lexema::Number(23),
+            Lexem::Number(12),
+            Lexem::Operator(MathOperators::Minus),
+            Lexem::Number(23),
         ];
         assert_eq!(lexems, actual);
     }
@@ -134,8 +134,8 @@ mod tokenizer_tests {
     fn letter() {
         let lexems = Lexer("var + ".chars()).get_lexems().unwrap();
         let actual = [
-            Lexema::Letter("var".into()),
-            Lexema::Operator(MathOperators::Plus),
+            Lexem::Letter("var".into()),
+            Lexem::Operator(MathOperators::Plus),
         ];
         assert_eq!(lexems, actual);
     }
@@ -144,13 +144,13 @@ mod tokenizer_tests {
     fn two_numbes_with_commas() {
         let lexems = Lexer("( 1 + 2\n ) * 3".chars()).get_lexems().unwrap();
         let actual = [
-            Lexema::Brackets(Brackets::Open),
-            Lexema::Number(1),
-            Lexema::Operator(MathOperators::Plus),
-            Lexema::Number(2),
-            Lexema::Brackets(Brackets::Close),
-            Lexema::Operator(MathOperators::Multiplier),
-            Lexema::Number(3),
+            Lexem::Brackets(Brackets::Open),
+            Lexem::Number(1),
+            Lexem::Operator(MathOperators::Plus),
+            Lexem::Number(2),
+            Lexem::Brackets(Brackets::Close),
+            Lexem::Operator(MathOperators::Multiplier),
+            Lexem::Number(3),
         ];
         assert_eq!(lexems, actual);
     }
