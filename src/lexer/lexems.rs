@@ -1,16 +1,22 @@
 #[derive(Debug, PartialEq)]
 pub enum Lexem {
-    Number(u32),
+    Number(Numbers),
     Letter(String),
     Operator(MathOperators),
-    Punctuation(Punctuation),
+    Punctuation(Punctuations),
     Brackets(Brackets),
     Comments(Comments),
     EndOfLine,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Punctuation {
+pub enum Numbers {
+    Integer(i64),
+    Float(f64),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Punctuations {
     Dot,
     Comma,
     Semicolon,
