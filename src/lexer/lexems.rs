@@ -11,7 +11,7 @@ pub enum Lexem {
 
 #[derive(Debug, PartialEq)]
 pub enum Numbers {
-    Integer(i64),
+    Integer(u64),
     Float(f64),
 }
 

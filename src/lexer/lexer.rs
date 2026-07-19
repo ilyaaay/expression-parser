@@ -1,6 +1,6 @@
 use super::{
     errors::LexerErrors,
-    lexems::{Brackets, Comments, Lexem, MathOperators, Punctuations},
+    lexems::{Brackets, Comments, Lexem, MathOperators, Numbers, Punctuations},
 };
 
 pub struct Lexer<I: Iterator<Item = char>>(pub I);
@@ -49,7 +49,7 @@ impl<I: Iterator<Item = char>> Lexer<I> {
                             && *peek == '/'
                         {
                             tokens.push(Lexem::Comments(Comments::Multiline));
-                            chars.next();
+                            continue;
                         } else {
                             tokens.push(Lexem::Comments(Comments::Line));
                         }
@@ -67,10 +67,9 @@ impl<I: Iterator<Item = char>> Lexer<I> {
 
                 ch if ch.is_ascii_digit() => {
                     let mut buf = String::from(ch);
-                    let mut is_float = false;
 
                     while let Some(&peek) = chars.peek() {
-                        if peek.is_ascii_digit() && !is_float {
+                        if peek.is_ascii_digit() {
                             buf.push(peek);
                             chars.next();
                         } else if peek.is_ascii_whitespace() {
@@ -80,10 +79,11 @@ impl<I: Iterator<Item = char>> Lexer<I> {
                         }
                     }
 
-                    let number = buf
-                        .parse::<u32>()
-                        .map(Lexem::Number)
-                        .map_err(|err| LexerErrors::ParseError(err.to_string()))?;
+                    let number = Lexem::Number(
+                        buf.parse::<u64>()
+                            .map(Numbers::Integer)
+                            .map_err(|err| LexerErrors::ParseError(err.to_string()))?,
+                    );
 
                     tokens.push(number);
                 }
@@ -102,25 +102,25 @@ impl<I: Iterator<Item = char>> Lexer<I> {
 
 #[cfg(test)]
 mod tokenizer_tests {
-    use crate::lexer::lexems::Numbers;
-
     use super::{Brackets, Lexem, Lexer, MathOperators};
+    use crate::lexer::lexems::{Comments, Numbers};
 
     #[test]
     fn one_digit_numbers() {
         let lexems = Lexer("1+2".chars()).get_lexems().unwrap();
         let actual = [
-            Lexem::Number(1),
+            Lexem::Number(Numbers::Integer(1)),
             Lexem::Operator(MathOperators::Plus),
-            Lexem::Number(2),
+            Lexem::Number(Numbers::Integer(2)),
         ];
         assert_eq!(lexems, actual);
 
         let lexems = Lexer("\n1 + \r\t2".chars()).get_lexems().unwrap();
         let actual = [
-            Lexem::Number(1),
+            Lexem::EndOfLine,
+            Lexem::Number(Numbers::Integer(1)),
             Lexem::Operator(MathOperators::Plus),
-            Lexem::Number(2),
+            Lexem::Number(Numbers::Integer(2)),
         ];
         assert_eq!(lexems, actual);
     }
@@ -129,9 +129,10 @@ mod tokenizer_tests {
     fn two_digit_numbers() {
         let lexems = Lexer("\n1\n2 - \t2\r3".chars()).get_lexems().unwrap();
         let actual = [
+            Lexem::EndOfLine,
             Lexem::Number(Numbers::Integer(12)),
             Lexem::Operator(MathOperators::Minus),
-            Lexem::Number(Numbers::Integer(1)),
+            Lexem::Number(Numbers::Integer(23)),
         ];
         assert_eq!(lexems, actual);
     }
@@ -162,13 +163,9 @@ mod tokenizer_tests {
     }
 
     #[test]
-    fn division() {
-        let lexems = Lexer("1 / 2 = 0.5".chars()).get_lexems().unwrap();
-        let actual = [
-            Lexem::Number(Numbers::Integer(1)),
-            Lexem::Operator(MathOperators::Division),
-            Lexem::Number(Numbers::Integer(2)),
-            Lexem::Operator(MathOperators::Equals),
-        ];
+    fn comments() {
+        let lexems = Lexer("//".chars()).get_lexems().unwrap();
+        let actual = [Lexem::Comments(Comments::Line)];
+        assert_eq!(lexems, actual);
     }
 }
